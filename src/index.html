@@ -16,6 +16,7 @@
             <nav class="menu">
                 <ul id="sidebarMenu">
                     <li class="active" data-target="panel-resizer">Bulk Resizer & Trim</li>
+                    <li data-target="panel-transform">Transform (Flip/Rotate)</li>
                     <li data-target="panel-filters">Color & Filters</li>
                     <li data-target="panel-background">Background Editor</li>
                     <li data-target="panel-shadow">Drop Shadow</li>
@@ -63,6 +64,30 @@
                 <div class="setting-group">
                     <label>Target Height (px)</label>
                     <input type="number" id="targetHeight" value="200">
+                </div>
+            </div>
+
+            <div id="panel-transform" class="tool-panel" style="display: none;">
+                <h3>Transform Settings</h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">Rotate or mirror all images in the queue.</p>
+                
+                <div class="setting-group">
+                    <label>Rotation: <span id="valRotation">0</span>°</label>
+                    <input type="range" id="transformRotate" min="-180" max="180" value="0" step="90" oninput="document.getElementById('valRotation').innerText = this.value">
+                </div>
+                
+                <div class="setting-group" style="margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; cursor: pointer; color: var(--text-main); font-size: 14px; font-weight: 500;">
+                        <input type="checkbox" id="flipHorizontal" style="margin-right: 10px; width: 18px; height: 18px; accent-color: var(--neon-green);">
+                        Flip Horizontal (Left/Right)
+                    </label>
+                </div>
+
+                <div class="setting-group" style="margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; cursor: pointer; color: var(--text-main); font-size: 14px; font-weight: 500;">
+                        <input type="checkbox" id="flipVertical" style="margin-right: 10px; width: 18px; height: 18px; accent-color: var(--neon-green);">
+                        Flip Vertical (Top/Bottom)
+                    </label>
                 </div>
             </div>
 

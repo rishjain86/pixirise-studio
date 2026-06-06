@@ -148,11 +148,23 @@ processBtn.addEventListener('click', async () => {
     const targetWidth = parseInt(document.getElementById('targetWidth').value) || 1000;
     const targetHeight = parseInt(document.getElementById('targetHeight').value) || 1000;
     const autoTrim = document.getElementById('autoTrimCheckbox').checked;
+    
     const bgColor = document.getElementById('bgColorPicker').value;
     const padding = parseInt(document.getElementById('canvasPadding').value) || 0;
+    
+    // Shadow Data
+    const shadowSettings = {
+        enabled: document.getElementById('enableShadowCheckbox').checked,
+        color: document.getElementById('shadowColorPicker').value,
+        blur: parseInt(document.getElementById('shadowBlur').value) || 0,
+        offsetX: parseInt(document.getElementById('shadowOffsetX').value) || 0,
+        offsetY: parseInt(document.getElementById('shadowOffsetY').value) || 0
+    };
+
     const wmText = document.getElementById('watermarkText').value;
     const wmPosition = document.getElementById('watermarkPosition').value;
     const wmOpacity = parseInt(document.getElementById('watermarkOpacity').value) / 100;
+    
     const exportFormat = document.getElementById('exportFormat').value;
     const quality = parseInt(qualitySlider.value) / 100;
 
@@ -174,7 +186,12 @@ processBtn.addEventListener('click', async () => {
         const extension = exportFormat.split('/')[1] === 'jpeg' ? 'jpg' : exportFormat.split('/')[1];
         const newFileName = `${baseName}.${extension}`;
 
-        const processedBlob = await processImageOnCanvas(file, targetWidth, targetHeight, autoTrim, bgColor, padding, wmText, wmPosition, wmOpacity, exportFormat, quality);
+        const processedBlob = await processImageOnCanvas(
+            file, targetWidth, targetHeight, autoTrim, 
+            bgColor, padding, shadowSettings, 
+            wmText, wmPosition, wmOpacity, 
+            exportFormat, quality
+        );
         
         if (useZip) {
             folder.file(newFileName, processedBlob);
@@ -205,7 +222,7 @@ function triggerDirectDownload(blob, filename) {
 }
 
 // ==========================================
-// 5. CANVAS & AUTO-TRIM ENGINE
+// 5. CANVAS, AUTO-TRIM & SHADOW ENGINE
 // ==========================================
 function getTrimBounds(img) {
     const c = document.createElement('canvas');
@@ -217,10 +234,8 @@ function getTrimBounds(img) {
     const data = imgData.data;
 
     let top = 0, bottom = img.height, left = 0, right = img.width;
-
     const isContent = (r, g, b, a) => a > 10 && (r < 250 || g < 250 || b < 250);
 
-    // Top
     for (let y = 0; y < img.height; y++) {
         let hasContent = false;
         for (let x = 0; x < img.width; x++) {
@@ -229,7 +244,6 @@ function getTrimBounds(img) {
         }
         if (hasContent) { top = y; break; }
     }
-    // Bottom
     for (let y = img.height - 1; y >= 0; y--) {
         let hasContent = false;
         for (let x = 0; x < img.width; x++) {
@@ -238,7 +252,6 @@ function getTrimBounds(img) {
         }
         if (hasContent) { bottom = y; break; }
     }
-    // Left
     for (let x = 0; x < img.width; x++) {
         let hasContent = false;
         for (let y = 0; y < img.height; y++) {
@@ -247,7 +260,6 @@ function getTrimBounds(img) {
         }
         if (hasContent) { left = x; break; }
     }
-    // Right
     for (let x = img.width - 1; x >= 0; x--) {
         let hasContent = false;
         for (let y = 0; y < img.height; y++) {
@@ -261,7 +273,7 @@ function getTrimBounds(img) {
     return { x: left, y: top, w: right - left + 1, h: bottom - top + 1 };
 }
 
-function processImageOnCanvas(file, width, height, autoTrim, bgColor, padding, wmText, wmPosition, wmOpacity, format, quality) {
+function processImageOnCanvas(file, width, height, autoTrim, bgColor, padding, shadow, wmText, wmPosition, wmOpacity, format, quality) {
     return new Promise((resolve) => {
         const img = new Image();
         const reader = new FileReader();
@@ -274,19 +286,19 @@ function processImageOnCanvas(file, width, height, autoTrim, bgColor, padding, w
             canvas.height = height;
             const ctx = canvas.getContext('2d');
 
-            // Draw Background
+            // 1. Draw Background First (without shadow)
             if (format === 'image/jpeg' || format === 'image/webp' || bgColor !== '#ffffff') {
                 ctx.fillStyle = bgColor;
                 ctx.fillRect(0, 0, width, height);
             }
 
-            // Trim Logic
+            // 2. Trim Logic
             let crop = { x: 0, y: 0, w: img.width, h: img.height };
             if (autoTrim) {
                 crop = getTrimBounds(img);
             }
 
-            // Scaling & Centering
+            // 3. Scaling & Centering
             const usableWidth = width - (padding * 2);
             const usableHeight = height - (padding * 2);
             const scale = Math.min(usableWidth / crop.w, usableHeight / crop.h);
@@ -295,10 +307,24 @@ function processImageOnCanvas(file, width, height, autoTrim, bgColor, padding, w
             const finalX = (width - drawWidth) / 2;
             const finalY = (height - drawHeight) / 2;
 
-            // Draw Processed Image
+            // 4. Apply Product Drop Shadow
+            if (shadow.enabled) {
+                ctx.shadowColor = shadow.color;
+                ctx.shadowBlur = shadow.blur;
+                ctx.shadowOffsetX = shadow.offsetX;
+                ctx.shadowOffsetY = shadow.offsetY;
+            }
+
+            // 5. Draw Processed Image
             ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, finalX, finalY, drawWidth, drawHeight);
 
-            // Watermark
+            // 6. Reset Shadow so it doesn't affect Watermark
+            ctx.shadowColor = "transparent";
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+
+            // 7. Apply Watermark
             if (wmText.trim() !== '') {
                 ctx.globalAlpha = wmOpacity;
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; 
@@ -316,7 +342,7 @@ function processImageOnCanvas(file, width, height, autoTrim, bgColor, padding, w
                     case 'bottom-right': default: wx = width - textWidth - wmPadding; wy = height - wmPadding; break;
                 }
 
-                ctx.shadowColor = "rgba(0,0,0,0.8)";
+                ctx.shadowColor = "rgba(0,0,0,0.8)"; // Independent watermark shadow
                 ctx.shadowBlur = 5;
                 ctx.shadowOffsetX = 2;
                 ctx.shadowOffsetY = 2;
@@ -326,6 +352,7 @@ function processImageOnCanvas(file, width, height, autoTrim, bgColor, padding, w
                 ctx.globalAlpha = 1.0;
             }
 
+            // 8. Export Data
             canvas.toBlob((blob) => resolve(blob), format, quality);
         };
 

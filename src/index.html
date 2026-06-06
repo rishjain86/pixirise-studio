@@ -151,10 +151,32 @@
 
             <div id="panel-watermark" class="tool-panel" style="display: none;">
                 <h3>Watermark Settings</h3>
+                
                 <div class="setting-group">
+                    <label>Watermark Type</label>
+                    <select id="watermarkType" onchange="document.getElementById('textWmGrp').style.display = this.value === 'text' ? 'block' : 'none'; document.getElementById('logoWmGrp').style.display = this.value === 'logo' ? 'block' : 'none';">
+                        <option value="text">Text Watermark</option>
+                        <option value="logo">Logo (Image) Watermark</option>
+                    </select>
+                </div>
+
+                <div id="textWmGrp" class="setting-group">
                     <label>Watermark Text</label>
                     <input type="text" id="watermarkText" placeholder="e.g. Copyright 2026" value="">
                 </div>
+
+                <div id="logoWmGrp" class="setting-group" style="display: none;">
+                    <label>Upload Logo (PNG/WebP)</label>
+                    <input type="file" id="watermarkLogoInput" accept="image/png, image/webp" style="padding: 5px; font-size: 12px; width: 100%;">
+                    <p style="font-size: 11px; color: var(--gold); margin-top: 5px;">* Transparent images work best.</p>
+                </div>
+
+                <div class="setting-group">
+                    <label>Watermark Scale / Size</label>
+                    <input type="range" id="watermarkScale" min="5" max="50" value="15">
+                    <p style="font-size: 11px; color: var(--text-muted); margin-top: 5px;">% of Canvas Width/Height</p>
+                </div>
+
                 <div class="setting-group">
                     <label>Position</label>
                     <select id="watermarkPosition">
@@ -165,6 +187,7 @@
                         <option value="center">Center</option>
                     </select>
                 </div>
+
                 <div class="setting-group">
                     <label>Opacity (%)</label>
                     <input type="range" id="watermarkOpacity" min="10" max="100" value="50">

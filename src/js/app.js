@@ -48,23 +48,20 @@ const zipToggle = document.getElementById('zipToggle');
 // ==========================================
 menuItems.forEach(item => {
     item.addEventListener('click', () => {
-        // Remove active class from all tabs
         menuItems.forEach(i => i.classList.remove('active'));
         panels.forEach(p => p.style.display = 'none');
         
-        // Activate clicked tab
         item.classList.add('active');
         const targetId = item.getAttribute('data-target');
         document.getElementById(targetId).style.display = 'block';
         workspaceTitle.textContent = item.textContent + ' Workspace';
 
-        // Toggle global action buttons based on active tab
         if(targetId === 'panel-ocr') {
             processBtn.style.display = 'none';
             zipToggleDiv.style.display = 'none';
         } else {
             processBtn.style.display = 'block';
-            updateQueue(); // refresh zip toggle state
+            updateQueue(); 
         }
     });
 });
@@ -76,10 +73,8 @@ qualitySlider.addEventListener('input', (e) => {
     qualityValue.textContent = e.target.value + '%';
 });
 
-// Click to select
 fileInput.addEventListener('change', handleFileSelect);
 
-// Drag and drop for PC
 uploadArea.addEventListener('dragover', (e) => {
     e.preventDefault();
     uploadArea.style.borderColor = 'var(--neon-green)';
@@ -107,7 +102,6 @@ function updateQueue() {
     queueCount.textContent = selectedFiles.length;
     previewGrid.innerHTML = ''; 
 
-    // Don't show process buttons if in OCR tab
     const isOcrTab = document.getElementById('panel-ocr').style.display === 'block';
 
     if (!isOcrTab) {
@@ -150,24 +144,18 @@ processBtn.addEventListener('click', async () => {
     processBtn.textContent = "Processing...";
     processBtn.disabled = true;
 
-    // Get Resizer Settings
+    // Settings Data
     const targetWidth = parseInt(document.getElementById('targetWidth').value) || 1000;
     const targetHeight = parseInt(document.getElementById('targetHeight').value) || 1000;
-    
-    // Get Background Settings
+    const autoTrim = document.getElementById('autoTrimCheckbox').checked;
     const bgColor = document.getElementById('bgColorPicker').value;
     const padding = parseInt(document.getElementById('canvasPadding').value) || 0;
-    
-    // Get Watermark Settings
     const wmText = document.getElementById('watermarkText').value;
     const wmPosition = document.getElementById('watermarkPosition').value;
     const wmOpacity = parseInt(document.getElementById('watermarkOpacity').value) / 100;
-
-    // Get Export Settings
     const exportFormat = document.getElementById('exportFormat').value;
     const quality = parseInt(qualitySlider.value) / 100;
 
-    // Decide Download Strategy
     const isSingle = selectedFiles.length === 1;
     const useZip = !isSingle && zipToggle.checked;
 
@@ -180,38 +168,32 @@ processBtn.addEventListener('click', async () => {
     for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i];
         
-        // Extract ORIGINAL filename without extension
         const originalName = file.name;
         const lastDotIndex = originalName.lastIndexOf('.');
         const baseName = lastDotIndex !== -1 ? originalName.substring(0, lastDotIndex) : originalName;
         const extension = exportFormat.split('/')[1] === 'jpeg' ? 'jpg' : exportFormat.split('/')[1];
-        const newFileName = `${baseName}.${extension}`; // e.g., product_front.webp
+        const newFileName = `${baseName}.${extension}`;
 
-        // Process image via Canvas
-        const processedBlob = await processImageOnCanvas(file, targetWidth, targetHeight, bgColor, padding, wmText, wmPosition, wmOpacity, exportFormat, quality);
+        const processedBlob = await processImageOnCanvas(file, targetWidth, targetHeight, autoTrim, bgColor, padding, wmText, wmPosition, wmOpacity, exportFormat, quality);
         
         if (useZip) {
             folder.file(newFileName, processedBlob);
         } else {
-            // Download individually
             triggerDirectDownload(processedBlob, newFileName);
         }
     }
 
     if (useZip) {
-        // Generate and download ZIP
         const content = await zip.generateAsync({ type: "blob" });
         triggerDirectDownload(content, "PixiRise_Batch.zip");
     }
 
-    // Reset UI
     processBtn.textContent = "Process Images";
     processBtn.disabled = false;
     selectedFiles = [];
     updateQueue();
 });
 
-// Direct Download Helper Function
 function triggerDirectDownload(blob, filename) {
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -223,16 +205,68 @@ function triggerDirectDownload(blob, filename) {
 }
 
 // ==========================================
-// 5. CANVAS MANIPULATION ENGINE
+// 5. CANVAS & AUTO-TRIM ENGINE
 // ==========================================
-function processImageOnCanvas(file, width, height, bgColor, padding, wmText, wmPosition, wmOpacity, format, quality) {
+function getTrimBounds(img) {
+    const c = document.createElement('canvas');
+    c.width = img.width;
+    c.height = img.height;
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0);
+    const imgData = ctx.getImageData(0, 0, c.width, c.height);
+    const data = imgData.data;
+
+    let top = 0, bottom = img.height, left = 0, right = img.width;
+
+    const isContent = (r, g, b, a) => a > 10 && (r < 250 || g < 250 || b < 250);
+
+    // Top
+    for (let y = 0; y < img.height; y++) {
+        let hasContent = false;
+        for (let x = 0; x < img.width; x++) {
+            const i = (y * img.width + x) * 4;
+            if (isContent(data[i], data[i+1], data[i+2], data[i+3])) { hasContent = true; break; }
+        }
+        if (hasContent) { top = y; break; }
+    }
+    // Bottom
+    for (let y = img.height - 1; y >= 0; y--) {
+        let hasContent = false;
+        for (let x = 0; x < img.width; x++) {
+            const i = (y * img.width + x) * 4;
+            if (isContent(data[i], data[i+1], data[i+2], data[i+3])) { hasContent = true; break; }
+        }
+        if (hasContent) { bottom = y; break; }
+    }
+    // Left
+    for (let x = 0; x < img.width; x++) {
+        let hasContent = false;
+        for (let y = 0; y < img.height; y++) {
+            const i = (y * img.width + x) * 4;
+            if (isContent(data[i], data[i+1], data[i+2], data[i+3])) { hasContent = true; break; }
+        }
+        if (hasContent) { left = x; break; }
+    }
+    // Right
+    for (let x = img.width - 1; x >= 0; x--) {
+        let hasContent = false;
+        for (let y = 0; y < img.height; y++) {
+            const i = (y * img.width + x) * 4;
+            if (isContent(data[i], data[i+1], data[i+2], data[i+3])) { hasContent = true; break; }
+        }
+        if (hasContent) { right = x; break; }
+    }
+
+    if (bottom < top || right < left) return { x: 0, y: 0, w: img.width, h: img.height };
+    return { x: left, y: top, w: right - left + 1, h: bottom - top + 1 };
+}
+
+function processImageOnCanvas(file, width, height, autoTrim, bgColor, padding, wmText, wmPosition, wmOpacity, format, quality) {
     return new Promise((resolve) => {
         const img = new Image();
         const reader = new FileReader();
 
-        reader.onload = (e) => {
-            img.src = e.target.result;
-        };
+        reader.onload = (e) => img.src = e.target.result;
 
         img.onload = () => {
             const canvas = document.createElement('canvas');
@@ -240,73 +274,59 @@ function processImageOnCanvas(file, width, height, bgColor, padding, wmText, wmP
             canvas.height = height;
             const ctx = canvas.getContext('2d');
 
-            // 1. Draw Background Color
-            if (format === 'image/jpeg' || format === 'image/webp') {
-                ctx.fillStyle = bgColor;
-                ctx.fillRect(0, 0, width, height);
-            } else if (bgColor !== '#ffffff') {
+            // Draw Background
+            if (format === 'image/jpeg' || format === 'image/webp' || bgColor !== '#ffffff') {
                 ctx.fillStyle = bgColor;
                 ctx.fillRect(0, 0, width, height);
             }
 
-            // 2. Calculate scaling to fit image inside target canvas with padding
+            // Trim Logic
+            let crop = { x: 0, y: 0, w: img.width, h: img.height };
+            if (autoTrim) {
+                crop = getTrimBounds(img);
+            }
+
+            // Scaling & Centering
             const usableWidth = width - (padding * 2);
             const usableHeight = height - (padding * 2);
-            
-            const scale = Math.min(usableWidth / img.width, usableHeight / img.height);
-            const drawWidth = img.width * scale;
-            const drawHeight = img.height * scale;
-            
-            // Center the image
-            const x = (width - drawWidth) / 2;
-            const y = (height - drawHeight) / 2;
+            const scale = Math.min(usableWidth / crop.w, usableHeight / crop.h);
+            const drawWidth = crop.w * scale;
+            const drawHeight = crop.h * scale;
+            const finalX = (width - drawWidth) / 2;
+            const finalY = (height - drawHeight) / 2;
 
-            // Draw Original Image
-            ctx.drawImage(img, x, y, drawWidth, drawHeight);
+            // Draw Processed Image
+            ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, finalX, finalY, drawWidth, drawHeight);
 
-            // 3. Add Smart Watermark (if text is provided)
+            // Watermark
             if (wmText.trim() !== '') {
                 ctx.globalAlpha = wmOpacity;
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; 
                 ctx.font = `bold ${Math.floor(height * 0.05)}px Arial`; 
-                
-                const textMetrics = ctx.measureText(wmText);
-                const textWidth = textMetrics.width;
+                const textWidth = ctx.measureText(wmText).width;
                 const textHeight = Math.floor(height * 0.05);
                 const wmPadding = 20;
 
                 let wx, wy;
                 switch(wmPosition) {
-                    case 'top-left':
-                        wx = wmPadding; wy = wmPadding + textHeight; break;
-                    case 'top-right':
-                        wx = width - textWidth - wmPadding; wy = wmPadding + textHeight; break;
-                    case 'bottom-left':
-                        wx = wmPadding; wy = height - wmPadding; break;
-                    case 'center':
-                        wx = (width - textWidth) / 2; wy = (height + textHeight) / 2; break;
-                    case 'bottom-right':
-                    default:
-                        wx = width - textWidth - wmPadding; wy = height - wmPadding; break;
+                    case 'top-left': wx = wmPadding; wy = wmPadding + textHeight; break;
+                    case 'top-right': wx = width - textWidth - wmPadding; wy = wmPadding + textHeight; break;
+                    case 'bottom-left': wx = wmPadding; wy = height - wmPadding; break;
+                    case 'center': wx = (width - textWidth) / 2; wy = (height + textHeight) / 2; break;
+                    case 'bottom-right': default: wx = width - textWidth - wmPadding; wy = height - wmPadding; break;
                 }
 
-                // Draw Text Shadow for better visibility
                 ctx.shadowColor = "rgba(0,0,0,0.8)";
                 ctx.shadowBlur = 5;
                 ctx.shadowOffsetX = 2;
                 ctx.shadowOffsetY = 2;
-                
                 ctx.fillText(wmText, wx, wy);
                 
-                // Reset context properties
                 ctx.shadowColor = "transparent";
                 ctx.globalAlpha = 1.0;
             }
 
-            // 4. Export to Blob
-            canvas.toBlob((blob) => {
-                resolve(blob);
-            }, format, quality);
+            canvas.toBlob((blob) => resolve(blob), format, quality);
         };
 
         reader.readAsDataURL(file);
@@ -322,10 +342,9 @@ startOcrBtn.addEventListener('click', async () => {
         return;
     }
 
-    const fileToRead = selectedFiles[0]; // We run OCR on the first selected image
+    const fileToRead = selectedFiles[0]; 
     const lang = ocrLanguage.value;
 
-    // UI Feedback
     startOcrBtn.textContent = "Analyzing Image (This may take a minute)...";
     startOcrBtn.disabled = true;
     ocrResultText.value = "Initializing Tesseract engine...";
@@ -342,7 +361,6 @@ startOcrBtn.addEventListener('click', async () => {
         ocrResultText.value = "An error occurred during text extraction.";
     }
 
-    // Reset UI Feedback
     startOcrBtn.textContent = "Run OCR on Selected Image";
     startOcrBtn.disabled = false;
 });

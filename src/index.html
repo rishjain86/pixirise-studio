@@ -101,6 +101,11 @@
                         <option value="hin">Hindi</option>
                     </select>
                 </div>
+                <div class="setting-group">
+                    <label>Extracted Text</label>
+                    <textarea id="ocrResultText" rows="6" placeholder="Extracted text will appear here..." readonly style="width: 100%; background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; resize: vertical; margin-bottom: 10px;"></textarea>
+                </div>
+                <button class="btn-primary" id="startOcrBtn" style="width: 100%;">Run OCR on Selected Image</button>
             </div>
 
             <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
@@ -121,12 +126,15 @@
                 <span id="qualityValue">80%</span>
             </div>
 
-            <button class="btn-action" id="processBtn">Process & Download .Zip</button>
+            <button class="btn-action" id="processBtn">Process Images</button>
         </aside>
 
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
     <script src="js/app.js"></script>
 </body>
 </html>

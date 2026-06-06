@@ -19,7 +19,7 @@
 body {
     background-color: var(--bg-dark);
     color: var(--text-main);
-    overflow: hidden; /* App-like feel */
+    overflow: hidden; /* App-like feel on desktop */
 }
 
 /* Layout Setup */
@@ -268,4 +268,70 @@ input[type="range"] {
     white-space: nowrap;
     width: 100%;
     text-align: center;
+}
+
+/* =========================================
+   Mobile Responsiveness (Stack Layout)
+   ========================================= */
+@media (max-width: 768px) {
+    body {
+        overflow: auto; /* Allow scrolling on mobile */
+    }
+
+    .dashboard-container {
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+    }
+
+    /* Sidebar to Top Navbar */
+    .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .logo {
+        text-align: center;
+        padding: 15px;
+    }
+
+    /* Horizontal scrollable menu for mobile */
+    .menu {
+        padding: 0;
+    }
+    
+    .menu ul {
+        display: flex;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .menu li {
+        padding: 15px;
+        flex: 0 0 auto;
+    }
+
+    /* Center Workspace */
+    .workspace {
+        width: 100%;
+        overflow-y: visible;
+    }
+
+    .upload-area {
+        margin: 15px;
+        padding: 30px 15px;
+    }
+
+    /* Settings Panel at Bottom */
+    .settings-panel {
+        width: 100%;
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+        padding: 20px 15px 40px 15px;
+    }
+
+    .btn-action {
+        margin-top: 20px;
+    }
 }

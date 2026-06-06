@@ -144,11 +144,18 @@ processBtn.addEventListener('click', async () => {
     processBtn.textContent = "Processing...";
     processBtn.disabled = true;
 
-    // Settings Data
+    // Resizer & Trim Data
     const targetWidth = parseInt(document.getElementById('targetWidth').value) || 1000;
     const targetHeight = parseInt(document.getElementById('targetHeight').value) || 1000;
     const autoTrim = document.getElementById('autoTrimCheckbox').checked;
     
+    // Transform Data
+    const transformSettings = {
+        rotate: parseInt(document.getElementById('transformRotate').value) || 0,
+        flipH: document.getElementById('flipHorizontal').checked,
+        flipV: document.getElementById('flipVertical').checked
+    };
+
     // Filters Data
     const filtersSettings = {
         brightness: parseInt(document.getElementById('filterBrightness').value) || 100,
@@ -156,6 +163,7 @@ processBtn.addEventListener('click', async () => {
         saturation: parseInt(document.getElementById('filterSaturation').value) || 100
     };
 
+    // Background Data
     const bgColor = document.getElementById('bgColorPicker').value;
     const padding = parseInt(document.getElementById('canvasPadding').value) || 0;
     
@@ -168,10 +176,12 @@ processBtn.addEventListener('click', async () => {
         offsetY: parseInt(document.getElementById('shadowOffsetY').value) || 0
     };
 
+    // Watermark Data
     const wmText = document.getElementById('watermarkText').value;
     const wmPosition = document.getElementById('watermarkPosition').value;
     const wmOpacity = parseInt(document.getElementById('watermarkOpacity').value) / 100;
     
+    // Export Data
     const exportFormat = document.getElementById('exportFormat').value;
     const quality = parseInt(qualitySlider.value) / 100;
 
@@ -194,7 +204,7 @@ processBtn.addEventListener('click', async () => {
         const newFileName = `${baseName}.${extension}`;
 
         const processedBlob = await processImageOnCanvas(
-            file, targetWidth, targetHeight, autoTrim, filtersSettings,
+            file, targetWidth, targetHeight, autoTrim, transformSettings, filtersSettings,
             bgColor, padding, shadowSettings, 
             wmText, wmPosition, wmOpacity, 
             exportFormat, quality
@@ -229,7 +239,7 @@ function triggerDirectDownload(blob, filename) {
 }
 
 // ==========================================
-// 5. CANVAS, AUTO-TRIM, FILTERS & SHADOW ENGINE
+// 5. THE MASTER CANVAS ENGINE
 // ==========================================
 function getTrimBounds(img) {
     const c = document.createElement('canvas');
@@ -280,7 +290,7 @@ function getTrimBounds(img) {
     return { x: left, y: top, w: right - left + 1, h: bottom - top + 1 };
 }
 
-function processImageOnCanvas(file, width, height, autoTrim, filters, bgColor, padding, shadow, wmText, wmPosition, wmOpacity, format, quality) {
+function processImageOnCanvas(file, width, height, autoTrim, transform, filters, bgColor, padding, shadow, wmText, wmPosition, wmOpacity, format, quality) {
     return new Promise((resolve) => {
         const img = new Image();
         const reader = new FileReader();
@@ -293,8 +303,7 @@ function processImageOnCanvas(file, width, height, autoTrim, filters, bgColor, p
             canvas.height = height;
             const ctx = canvas.getContext('2d');
 
-            // 1. Reset Filters & Draw Background First
-            ctx.filter = 'none';
+            // 1. Draw Background First (Independent of transforms/filters)
             if (format === 'image/jpeg' || format === 'image/webp' || bgColor !== '#ffffff') {
                 ctx.fillStyle = bgColor;
                 ctx.fillRect(0, 0, width, height);
@@ -306,19 +315,31 @@ function processImageOnCanvas(file, width, height, autoTrim, filters, bgColor, p
                 crop = getTrimBounds(img);
             }
 
-            // 3. Scaling & Centering
+            // 3. Scaling Calculations
             const usableWidth = width - (padding * 2);
             const usableHeight = height - (padding * 2);
             const scale = Math.min(usableWidth / crop.w, usableHeight / crop.h);
             const drawWidth = crop.w * scale;
             const drawHeight = crop.h * scale;
-            const finalX = (width - drawWidth) / 2;
-            const finalY = (height - drawHeight) / 2;
+            
+            // Calculate center point of where the image should be drawn
+            const centerX = width / 2;
+            const centerY = height / 2;
 
-            // 4. Apply Filters (Brightness, Contrast, Saturation)
+            // Save canvas state before applying any transformations, shadows, or filters
+            ctx.save();
+
+            // 4. Move canvas origin to the center point
+            ctx.translate(centerX, centerY);
+
+            // 5. Apply Transforms (Rotate & Flip)
+            ctx.rotate((transform.rotate * Math.PI) / 180);
+            ctx.scale(transform.flipH ? -1 : 1, transform.flipV ? -1 : 1);
+
+            // 6. Apply Filters (Brightness, Contrast, Saturation)
             ctx.filter = `brightness(${filters.brightness}%) contrast(${filters.contrast}%) saturate(${filters.saturation}%)`;
 
-            // 5. Apply Product Drop Shadow
+            // 7. Apply Product Drop Shadow
             if (shadow.enabled) {
                 ctx.shadowColor = shadow.color;
                 ctx.shadowBlur = shadow.blur;
@@ -326,17 +347,13 @@ function processImageOnCanvas(file, width, height, autoTrim, filters, bgColor, p
                 ctx.shadowOffsetY = shadow.offsetY;
             }
 
-            // 6. Draw Processed Image
-            ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, finalX, finalY, drawWidth, drawHeight);
+            // 8. Draw Image (Offset by half of draw width/height since origin is at center)
+            ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
 
-            // 7. Reset Shadow & Filters so it doesn't affect Watermark
-            ctx.shadowColor = "transparent";
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
-            ctx.filter = 'none';
+            // Restore canvas state (Automatically removes filters, shadows, and transforms)
+            ctx.restore();
 
-            // 8. Apply Watermark
+            // 9. Apply Watermark (Unaffected by transforms, shadows, and filters)
             if (wmText.trim() !== '') {
                 ctx.globalAlpha = wmOpacity;
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; 
@@ -364,7 +381,7 @@ function processImageOnCanvas(file, width, height, autoTrim, filters, bgColor, p
                 ctx.globalAlpha = 1.0;
             }
 
-            // 9. Export Data
+            // 10. Export Data
             canvas.toBlob((blob) => resolve(blob), format, quality);
         };
 

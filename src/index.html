@@ -16,6 +16,7 @@
             <nav class="menu">
                 <ul id="sidebarMenu">
                     <li class="active" data-target="panel-resizer">Bulk Resizer & Trim</li>
+                    <li data-target="panel-filters">Color & Filters</li>
                     <li data-target="panel-background">Background Editor</li>
                     <li data-target="panel-shadow">Drop Shadow</li>
                     <li data-target="panel-watermark">Smart Watermark</li>
@@ -62,6 +63,26 @@
                 <div class="setting-group">
                     <label>Target Height (px)</label>
                     <input type="number" id="targetHeight" value="200">
+                </div>
+            </div>
+
+            <div id="panel-filters" class="tool-panel" style="display: none;">
+                <h3>Image Enhancements</h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">Adjust color settings for all images in the queue.</p>
+                
+                <div class="setting-group">
+                    <label>Brightness: <span id="valBrightness">100</span>%</label>
+                    <input type="range" id="filterBrightness" min="0" max="200" value="100" oninput="document.getElementById('valBrightness').innerText = this.value">
+                </div>
+                
+                <div class="setting-group">
+                    <label>Contrast: <span id="valContrast">100</span>%</label>
+                    <input type="range" id="filterContrast" min="0" max="200" value="100" oninput="document.getElementById('valContrast').innerText = this.value">
+                </div>
+                
+                <div class="setting-group">
+                    <label>Saturation: <span id="valSaturation">100</span>%</label>
+                    <input type="range" id="filterSaturation" min="0" max="200" value="100" oninput="document.getElementById('valSaturation').innerText = this.value">
                 </div>
             </div>
 

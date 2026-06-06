@@ -1,0 +1,6 @@
+{
+  "appId": "com.pixirise.studio",
+  "appName": "PixiRise Studio",
+  "webDir": "src",
+  "bundledWebRuntime": false
+}

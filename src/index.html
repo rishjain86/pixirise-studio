@@ -17,6 +17,7 @@
                 <ul id="sidebarMenu">
                     <li class="active" data-target="panel-resizer">Bulk Resizer & Trim</li>
                     <li data-target="panel-background">Background Editor</li>
+                    <li data-target="panel-shadow">Drop Shadow</li>
                     <li data-target="panel-watermark">Smart Watermark</li>
                     <li data-target="panel-ocr">OCR Extractor</li>
                 </ul>
@@ -73,6 +74,32 @@
                 <div class="setting-group">
                     <label>Padding / Margin (px)</label>
                     <input type="number" id="canvasPadding" value="0" min="0" max="100">
+                </div>
+            </div>
+
+            <div id="panel-shadow" class="tool-panel" style="display: none;">
+                <h3>Drop Shadow Settings</h3>
+                <div class="setting-group" style="margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; cursor: pointer; color: var(--text-main); font-size: 14px; font-weight: 500;">
+                        <input type="checkbox" id="enableShadowCheckbox" style="margin-right: 10px; width: 18px; height: 18px; accent-color: var(--neon-green);">
+                        Apply Drop Shadow
+                    </label>
+                </div>
+                <div class="setting-group">
+                    <label>Shadow Color</label>
+                    <input type="color" id="shadowColorPicker" value="#000000" style="width: 100%; height: 40px; border: none; border-radius: 6px; cursor: pointer;">
+                </div>
+                <div class="setting-group">
+                    <label>Shadow Blur (px)</label>
+                    <input type="range" id="shadowBlur" min="0" max="50" value="15">
+                </div>
+                <div class="setting-group">
+                    <label>Offset X (Left/Right)</label>
+                    <input type="range" id="shadowOffsetX" min="-50" max="50" value="0">
+                </div>
+                <div class="setting-group">
+                    <label>Offset Y (Top/Bottom)</label>
+                    <input type="range" id="shadowOffsetY" min="-50" max="50" value="10">
                 </div>
             </div>
 

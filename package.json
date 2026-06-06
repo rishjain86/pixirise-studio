@@ -1,0 +1,28 @@
+{
+  "name": "pixirise-studio",
+  "version": "1.0.0",
+  "description": "Premium Client-Side Bulk Image Resizer, Editor, and E-commerce Visual Asset Studio",
+  "main": "src/index.html",
+  "scripts": {
+    "start": "npx cap serve",
+    "build": "npx cap sync android",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "image-editor",
+    "bulk-resize",
+    "capacitor",
+    "html5-canvas",
+    "ecommerce-tools"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@capacitor/android": "^5.0.0",
+    "@capacitor/core": "^5.0.0",
+    "jszip": "^3.10.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^5.0.0"
+  }
+}

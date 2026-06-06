@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
     <title>PixiRise Studio</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -14,24 +14,24 @@
                 <h2>PixiRise <span class="neon-accent">Studio</span></h2>
             </div>
             <nav class="menu">
-                <ul>
-                    <li class="active">Bulk Resizer</li>
-                    <li>Background Editor</li>
-                    <li>Smart Watermark</li>
-                    <li>OCR Extractor</li>
+                <ul id="sidebarMenu">
+                    <li class="active" data-target="panel-resizer">Bulk Resizer</li>
+                    <li data-target="panel-background">Background Editor</li>
+                    <li data-target="panel-watermark">Smart Watermark</li>
+                    <li data-target="panel-ocr">OCR Extractor</li>
                 </ul>
             </nav>
         </aside>
 
         <main class="workspace">
             <header class="topbar">
-                <h1>Active Workspace</h1>
+                <h1 id="workspaceTitle">Bulk Resizer Workspace</h1>
             </header>
             
             <div class="upload-area" id="uploadArea">
                 <div class="upload-icon">📁</div>
                 <h3>Drag & Drop Images Here</h3>
-                <p>or click to browse files</p>
+                <p>or tap to browse files</p>
                 <input type="file" id="fileInput" multiple accept="image/*" hidden>
                 <button class="btn-primary" onclick="document.getElementById('fileInput').click()">Select Images</button>
             </div>
@@ -44,18 +44,68 @@
         </main>
 
         <aside class="settings-panel">
-            <h3>Batch Settings</h3>
             
-            <div class="setting-group">
-                <label>Target Width (px)</label>
-                <input type="number" id="targetWidth" value="349">
-            </div>
-            
-            <div class="setting-group">
-                <label>Target Height (px)</label>
-                <input type="number" id="targetHeight" value="200">
+            <div id="panel-resizer" class="tool-panel active-panel">
+                <h3>Resizer Settings</h3>
+                <div class="setting-group">
+                    <label>Target Width (px)</label>
+                    <input type="number" id="targetWidth" value="349">
+                </div>
+                <div class="setting-group">
+                    <label>Target Height (px)</label>
+                    <input type="number" id="targetHeight" value="200">
+                </div>
             </div>
 
+            <div id="panel-background" class="tool-panel" style="display: none;">
+                <h3>Background Settings</h3>
+                <div class="setting-group">
+                    <label>Canvas Background</label>
+                    <input type="color" id="bgColorPicker" value="#ffffff" style="width: 100%; height: 40px; border: none; border-radius: 6px; cursor: pointer;">
+                </div>
+                <div class="setting-group">
+                    <label>Padding / Margin (px)</label>
+                    <input type="number" id="canvasPadding" value="0" min="0" max="100">
+                </div>
+            </div>
+
+            <div id="panel-watermark" class="tool-panel" style="display: none;">
+                <h3>Watermark Settings</h3>
+                <div class="setting-group">
+                    <label>Watermark Text</label>
+                    <input type="text" id="watermarkText" placeholder="e.g. Copyright 2026" value="">
+                </div>
+                <div class="setting-group">
+                    <label>Position</label>
+                    <select id="watermarkPosition">
+                        <option value="bottom-right">Bottom Right</option>
+                        <option value="bottom-left">Bottom Left</option>
+                        <option value="top-right">Top Right</option>
+                        <option value="top-left">Top Left</option>
+                        <option value="center">Center</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label>Opacity (%)</label>
+                    <input type="range" id="watermarkOpacity" min="10" max="100" value="50">
+                </div>
+            </div>
+
+            <div id="panel-ocr" class="tool-panel" style="display: none;">
+                <h3>OCR Settings</h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">Extract text directly from product packaging.</p>
+                <div class="setting-group">
+                    <label>Language</label>
+                    <select id="ocrLanguage">
+                        <option value="eng">English</option>
+                        <option value="hin">Hindi</option>
+                    </select>
+                </div>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
+            <h3>Export Settings</h3>
+            
             <div class="setting-group">
                 <label>Export Format</label>
                 <select id="exportFormat">

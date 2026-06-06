@@ -20,13 +20,17 @@ const qualityValue = document.getElementById('qualityValue');
 const processBtn = document.getElementById('processBtn');
 const settingsPanel = document.querySelector('.settings-panel');
 
+// DOM Elements - OCR
+const startOcrBtn = document.getElementById('startOcrBtn');
+const ocrResultText = document.getElementById('ocrResultText');
+const ocrLanguage = document.getElementById('ocrLanguage');
+
 // Variables
 let selectedFiles = [];
 
 // ==========================================
 // 1. DYNAMIC UI SETUP (Zip Toggle Option)
 // ==========================================
-// Dynamically adding the ZIP toggle checkbox above the process button
 const zipToggleDiv = document.createElement('div');
 zipToggleDiv.className = 'setting-group';
 zipToggleDiv.style.marginTop = '10px';
@@ -53,6 +57,15 @@ menuItems.forEach(item => {
         const targetId = item.getAttribute('data-target');
         document.getElementById(targetId).style.display = 'block';
         workspaceTitle.textContent = item.textContent + ' Workspace';
+
+        // Toggle global action buttons based on active tab
+        if(targetId === 'panel-ocr') {
+            processBtn.style.display = 'none';
+            zipToggleDiv.style.display = 'none';
+        } else {
+            processBtn.style.display = 'block';
+            updateQueue(); // refresh zip toggle state
+        }
     });
 });
 
@@ -94,16 +107,20 @@ function updateQueue() {
     queueCount.textContent = selectedFiles.length;
     previewGrid.innerHTML = ''; 
 
-    // Update button text based on count
-    if (selectedFiles.length === 0) {
-        processBtn.textContent = "Process Images";
-        zipToggleDiv.style.display = 'none';
-    } else if (selectedFiles.length === 1) {
-        processBtn.textContent = "Process & Download Image";
-        zipToggleDiv.style.display = 'none'; // Hide zip toggle for single image
-    } else {
-        processBtn.textContent = "Process " + selectedFiles.length + " Images";
-        zipToggleDiv.style.display = 'flex'; // Show zip toggle
+    // Don't show process buttons if in OCR tab
+    const isOcrTab = document.getElementById('panel-ocr').style.display === 'block';
+
+    if (!isOcrTab) {
+        if (selectedFiles.length === 0) {
+            processBtn.textContent = "Process Images";
+            zipToggleDiv.style.display = 'none';
+        } else if (selectedFiles.length === 1) {
+            processBtn.textContent = "Process & Download Image";
+            zipToggleDiv.style.display = 'none';
+        } else {
+            processBtn.textContent = "Process " + selectedFiles.length + " Images";
+            zipToggleDiv.style.display = 'flex';
+        }
     }
 
     selectedFiles.forEach((file) => {
@@ -228,7 +245,6 @@ function processImageOnCanvas(file, width, height, bgColor, padding, wmText, wmP
                 ctx.fillStyle = bgColor;
                 ctx.fillRect(0, 0, width, height);
             } else if (bgColor !== '#ffffff') {
-                // Apply background even for PNG if user picked a color other than default white
                 ctx.fillStyle = bgColor;
                 ctx.fillRect(0, 0, width, height);
             }
@@ -251,8 +267,8 @@ function processImageOnCanvas(file, width, height, bgColor, padding, wmText, wmP
             // 3. Add Smart Watermark (if text is provided)
             if (wmText.trim() !== '') {
                 ctx.globalAlpha = wmOpacity;
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; // White text with slight natural transparency
-                ctx.font = `bold ${Math.floor(height * 0.05)}px Arial`; // Scale font size based on canvas height
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; 
+                ctx.font = `bold ${Math.floor(height * 0.05)}px Arial`; 
                 
                 const textMetrics = ctx.measureText(wmText);
                 const textWidth = textMetrics.width;
@@ -296,3 +312,37 @@ function processImageOnCanvas(file, width, height, bgColor, padding, wmText, wmP
         reader.readAsDataURL(file);
     });
 }
+
+// ==========================================
+// 6. OCR ENGINE (TESSERACT.JS)
+// ==========================================
+startOcrBtn.addEventListener('click', async () => {
+    if (selectedFiles.length === 0) {
+        alert("Please select an image first to run OCR!");
+        return;
+    }
+
+    const fileToRead = selectedFiles[0]; // We run OCR on the first selected image
+    const lang = ocrLanguage.value;
+
+    // UI Feedback
+    startOcrBtn.textContent = "Analyzing Image (This may take a minute)...";
+    startOcrBtn.disabled = true;
+    ocrResultText.value = "Initializing Tesseract engine...";
+
+    try {
+        const worker = await Tesseract.createWorker(lang);
+        ocrResultText.value = "Recognizing text...";
+        const { data: { text } } = await worker.recognize(fileToRead);
+        
+        ocrResultText.value = text || "No text found in this image.";
+        await worker.terminate();
+    } catch (error) {
+        console.error("OCR Error:", error);
+        ocrResultText.value = "An error occurred during text extraction.";
+    }
+
+    // Reset UI Feedback
+    startOcrBtn.textContent = "Run OCR on Selected Image";
+    startOcrBtn.disabled = false;
+});
